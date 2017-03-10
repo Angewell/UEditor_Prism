@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>ueditor demo</title>
+
+    <!-- 引入 prism 的css 和 js -->
+    <link rel="stylesheet" type="text/css" href="prism.css">
+    <script type="text/javascript" src="prism.js"></script>
+</head>
+<body>
+    <!-- 加载编辑器的容器 -->
+    <script id="container" name="content" type="text/plain">这里写你的初始化内容</script>
+
+    <!-- 提交按钮 -->
+    <input id="submit" type="button" value="提交">
+
+    <!-- 用来放置服务器返回的内容 -->
+    <div id="result" style="border: 1px solid #ddd; padding: 20px;"></div>
+
+    <!-- 配置文件 -->
+    <script type="text/javascript" src="ueditor.config.js"></script>
+    <!-- 编辑器源码文件 -->
+    <script type="text/javascript" src="ueditor.all.js"></script>
+    <!-- 引入jquery -->
+    <script type="text/javascript" src="jquery-2.1.4.min.js"></script>
+    <!-- 实例化编辑器 -->
+    <script type="text/javascript">
+        // 实例化编辑器
+        var ue = UE.getEditor('container');
+
+        ue.ready(function() {
+            $('#submit').click(function(){
+                // 获取 UEditor 输出的内容
+                var contentHtml = ue.getContent();
+                
+                // 把编辑好的内容提交给服务器
+                $.post('/editor', {
+                    content: contentHtml
+                }, function(res) {
+                    insertCodeElement(res, '#result');
+                });
+            });
+        });
+
+        // 插入 code 标签函数
+        // @param  content 为异步获取的内容
+        // @param  container 为放置这些内容的容器
+        function insertCodeElement(content, container){
+            container = container || document;
+
+            // 创建一个 div 来放置获取到的内容，这样就可以把 content 字符串内容转换成 dom
+            // 方便我们对这个 dom 进行操作（只是创建 div，并没有插入到文档，他只存在于内存中）
+            var parent = document.createElement('div');
+            parent.innerHTML = content;
+            
+            // 找到 parent 中的所有 pre 标签，并遍历
+            var $pres = $(parent).find('pre');
+            $pres.each(function(index, el) {
+                var $el = $(el),
+                    html = $el.html(),
+                    code = document.createElement('code'),
+                    elClass = $el.attr('class'),
+                    // 获取 pre 标签中，class 属性中包含的本段代码所有的编程语言
+                    language = elClass.substring(6, elClass.indexOf(';'));
+
+                code.className = 'language-' + language;
+                code.innerHTML = html;
+
+                $el.html(code);
+            });
+
+            $(container).html(parent.innerHTML);
+
+            // 最后，调用 Prism 的方法来高亮代码
+            Prism.highlightAll();
+        }
+    </script>
+</body>
+</html>
